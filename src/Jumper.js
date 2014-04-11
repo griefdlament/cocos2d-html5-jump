@@ -7,8 +7,8 @@ var Jumper = cc.Sprite.extend({
         this.y = y;
 
         this.maxVx = 8;
-        this.accX = 0.25;
-        this.backAccX = 0.5;
+        this.accelX = 0.25;
+        this.backAccelX = 0.5;
         this.jumpV = 20;
         this.g = -1;
         
@@ -19,7 +19,7 @@ var Jumper = cc.Sprite.extend({
         this.moveRight = false;
         this.jump = false;
 
-        this.ground = null;
+        this.groundBlock = null;
 
         this.blocks = [];
 
@@ -57,7 +57,7 @@ var Jumper = cc.Sprite.extend({
     },
 
     updateXMovement: function() {
-        if ( this.ground ) {
+        if ( this.groundBlock ) {
             if ( ( !this.moveLeft ) && ( !this.moveRight ) ) {
                 this.autoDeaccelerateX();
             } else if ( this.moveRight ) {
@@ -67,21 +67,25 @@ var Jumper = cc.Sprite.extend({
             }
         }
         this.x += this.vx;
-        if ( this.x < 0 ) {
+        this.handleBorder();
+    },
+	
+	handleBorder: function() {
+		if ( this.x < 0 ) {
             this.x += screenWidth;
         }
         if ( this.x > screenWidth ) {
             this.x -= screenWidth;
         }
-    },
+	},
 
     updateYMovement: function() {
-        if ( this.ground ) {
+        if ( this.groundBlock ) {
             this.vy = 0;
             if ( this.jump ) {
                 this.vy = this.jumpV;
-                this.y = this.ground.getTopY() + this.vy;
-                this.ground = null;
+                this.y = this.groundBlock.getTopY() + this.vy;
+                this.groundBlock = null;
             }
         } else {
             this.vy += this.g;
@@ -90,69 +94,85 @@ var Jumper = cc.Sprite.extend({
     },
 
     isSameDirection: function( dir ) {
-        return ( ( ( this.vx >=0 ) && ( dir >= 0 ) ) ||
+        return ( ( ( this.vx >= 0 ) && ( dir >= 0 ) ) ||
                  ( ( this.vx <= 0 ) && ( dir <= 0 ) ) );
     },
 
     accelerateX: function( dir ) {
         if ( this.isSameDirection( dir ) ) {
-            this.vx += dir * this.accX;
-            if ( Math.abs( this.vx ) > this.maxVx ) {
-                this.vx = dir * this.maxVx;
-            }
+            this.handleSameDirection( dir );
         } else {
-            if ( Math.abs( this.vx ) >= this.backAccX ) {
-                this.vx += dir * this.backAccX;
-            } else {
-                this.vx = 0;
-            }
+            this.handleDifferentDirection( dir );
         }
     },
+	
+	handleSameDirection: function( dir ) {
+		this.vx += dir * this.accelX;
+        if ( Math.abs( this.vx ) > this.maxVx ) {
+			this.vx = dir * this.maxVx;
+        }
+	},
+	
+	handleDifferentDirection: function( dir ) {
+		if ( Math.abs( this.vx ) >= this.backAccelX ) {
+            this.vx += dir * this.backAccelX;
+        } else {
+            this.vx = 0;
+        }
+	},
     
     autoDeaccelerateX: function() {
-        if ( Math.abs( this.vx ) < this.accX ) {
+        if ( Math.abs( this.vx ) < this.accelX ) {
             this.vx = 0;
         } else if ( this.vx > 0 ) {
-            this.vx -= this.accX;
+            this.vx -= this.accelX;
         } else {
-            this.vx += this.accX;
+            this.vx += this.accelX;
         }
     },
 
     handleCollision: function( oldRect, newRect ) {
-        if ( this.ground ) {
-            if ( !this.ground.onTop( newRect ) ) {
-                this.ground = null;
-            }
+        if ( this.groundBlock ) {
+            this.handleGrounded( newRect );
         } else {
-            if ( this.vy <= 0 ) {
-                var topBlock = this.findTopBlock( this.blocks,
-                                                  oldRect,
-                                                  newRect );
-                
-                if ( topBlock ) {
-                    this.ground = topBlock;
-                    this.y = topBlock.getTopY();
-                    this.vy = 0;
-                }
-            }
+            this.handleFalling( oldRect, newRect );
         }
     },
+	
+	handleGrounded: function( rect ) {
+		if ( !this.groundBlock.onTop( rect ) ) {
+            this.groundBlock = null;
+        }
+	},
+	
+	handleFalling: function( oldRect, newRect ) {
+		if ( this.vy <= 0 ) {
+            var groundBlock = this.findGroundBlock( this.blocks,
+                                              oldRect,
+                                              newRect );
+            
+            if ( groundBlock ) {
+                this.groundBlock = groundBlock;
+                this.y = groundBlock.getTopY();
+                this.vy = 0;
+            }
+        }
+	},
     
-    findTopBlock: function( blocks, oldRect, newRect ) {
-        var topBlock = null;
-        var topBlockY = -1;
+    findGroundBlock: function( blocks, oldRect, newRect ) {
+        var groundBlock = null;
+        var groundBlockTopY = -1;
         
         blocks.forEach( function( b ) {
             if ( b.hitTop( oldRect, newRect ) ) {
-                if ( b.getTopY() > topBlockY ) {
-                    topBlockY = b.getTopY();
-                    topBlock = b;
+                if ( b.getTopY() > groundBlockTopY ) {
+                    groundBlockTopY = b.getTopY();
+                    groundBlock = b;
                 }
             }
         }, this );
         
-        return topBlock;
+        return groundBlock;
     },
     
     handleKeyDown: function( e ) {

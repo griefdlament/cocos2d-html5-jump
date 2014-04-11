@@ -12,25 +12,25 @@ var Block = cc.Sprite.extend({
     },
 
     hitTop: function( oldRect, newRect ) {
-        var brect = this.getBoundingBoxToWorld();
-        if ( cc.rectGetMinY( oldRect ) >= cc.rectGetMaxY( brect ) ) {
+        var blockRect = this.getBoundingBoxToWorld();
+        if ( cc.rectGetMinY( oldRect ) >= cc.rectGetMaxY( blockRect ) ) {
             var loweredNewRect = cc.rect( newRect.x,
                                           newRect.y - 1,
                                           newRect.width,
                                           newRect.height + 1 );
-            var uRect = cc.rectUnion( oldRect, loweredNewRect );
-            return cc.rectIntersectsRect( uRect, brect );
+            var unionRect = cc.rectUnion( oldRect, loweredNewRect );
+            return cc.rectIntersectsRect( unionRect, blockRect );
         }
         return false;
     },
 
     onTop: function( rect ) {
-        var brect = this.getBoundingBoxToWorld();
-        var bminx = cc.rectGetMinX( brect );
-        var bmaxx = cc.rectGetMaxX( brect );
-        var minx = cc.rectGetMinX( rect );
-        var maxx = cc.rectGetMaxX( rect );
-        return ( minx <= bmaxx ) && ( bminx <= maxx );
+        var blockRect = this.getBoundingBoxToWorld();
+        var blockMinX = cc.rectGetMinX( blockRect );
+        var blockMaxX = cc.rectGetMaxX( blockRect );
+        var minX = cc.rectGetMinX( rect );
+        var maxX = cc.rectGetMaxX( rect );
+        return ( minX <= blockMaxX ) && ( blockMinX <= maxX );
     }
 });
 
